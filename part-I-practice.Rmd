@@ -1,0 +1,219 @@
+---
+title: "Part-I in practice"
+author: "林茂廷"
+date: "3/21/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 3/14
+
+```{r}
+library("AER")
+library("ggplot2")
+library("dplyr")
+library("knitr")
+
+data("Journals")
+
+Journals %>% mutate(citeprice=price/citations) -> journals
+summary(journals)
+
+library(psych)
+journals %>% 
+  select(citeprice,subs) %>%
+  pairs.panels()
+
+journals %>% 
+  select(citeprice,subs) %>%
+  mutate_all(log) %>%
+  pairs.panels()
+```
+
+# 3/21
+
+## 一行
+<function name> <- function(function inputs) function content
+
+```{r}
+# 判斷變數是否為數值類別
+all(is.numeric(journals$society))
+all(is.numeric(journals$price))
+
+is_numeric<-function(x) all(is.numeric(x))
+```
+
+# function inside a function
+select_if(is_numeric(x))
+1. is_numeric(x) -> output
+2. select_if(output)
+
+```{r}
+is_numeric(journals)->xx
+is.numeric(journals)->yy
+```
+
+```{r}
+is_numeric<-function(x) all(is.numeric(x))
+# 計算數數與citeprice的相關係數
+cor_citeprice<-function(x) cor(x,journals$citeprice)
+
+journals %>%  
+  select_if(is_numeric) %>%
+  summarise_all(cor_citeprice) %>%
+  kable()
+```
+
+
+## 多行
+<function name> <- function(function inputs) {
+ function contents
+} 
+
+```{r}
+is_numeric<-function(x) {
+    all(is.numeric(x))
+}
+```
+
+## when `<-` presents
+```{r}
+is_numeric2<-function(x){
+  temp<-all(is.numeric(x))
+}
+```
+
+```{r}
+all(is.numeric(journals$title)) #營幕看得到
+
+temp<-all(is.numeric(journals$publisher)) #看不到
+```
+
+
+```{r}
+is_numeric(journals$society)
+```
+
+```{r}
+is_numeric2(journals$society)
+```
+
+```{r}
+is_numeric3<-function(x){
+  temp<-all(is.numeric(x))
+  return(temp)
+}
+```
+
+# function with arguments from global environment
+```{r}
+cor_citeprice<-function(x) cor(x,journals$citeprice)
+```
+
+```{r}
+my_fun<-function(x) x+a
+```
+
+Good
+```{r}
+a<-8
+my_fun<-function(x) x+a
+```
+
+Even better: default
+```{r}
+my_fun2<-function(x,a=8) x+a
+my_fun2(3)
+my_fun2(3,10)
+```
+
+Bad
+```{r}
+my_fun<-function(x) x+a
+a<-8
+```
+
+```{r is_numeric inside select_if}
+#select_if(is_numeric(journals$title))
+is_numeric(journals$title)-> tempx
+select_if(tempx)
+```
+
+```{r 表示1}
+journals %>%  
+  select_if(is_numeric) 
+```
+
+```{r 表示2}
+select_if(journals,is_numeric)
+# 針對《journals》資料, 只選《is_numeric》會是TRUE的變數。
+select_if(journals,is_numeric)->temp2
+```
+
+
+```{r}
+temp2 %>%
+  summarise_all(cor_citeprice) 
+
+summarise_all(temp2,cor_citeprice)
+# 針對《temp2》資料的所有變數(all), 進行《cor_citeprice》的述敍統計值(summarise)計算。
+```
+
+```{r}
+journals %>% 
+  lm(log(subs)~log(citeprice),data=.)
+#equal to
+lm(log(subs)~log(citeprice),data=journals)
+
+journals %>%
+  lm(log(subs)~log(citeprice))
+# equal to 
+lm(journals,log(subs)~log(citeprice))
+```
+
+```{r saving formula}
+log(subs)~log(citeprice) -> f1
+lm(f1,data=journals)
+```
+
+```{r}
+journals %>%
+  lm(log(subs)~log(citeprice)+foundingyear,data=.)
+```
+
+```{r}
+journals %>% 
+  lm(log(subs)~log(citeprice),data=.) -> model_1
+journals %>%
+  lm(log(subs)~log(citeprice)+foundingyear,data=.) -> model_2
+```
+
+```{r}
+library(stargazer)
+stargazer(model_1,model_2,type="text")
+```
+
+
+```{r}
+library(sandwich)
+library(lmtest)
+
+#使用vcovHC函數來計算HC1型的異質變異（即橫斷面資料下的線性迴歸模型）
+coeftest(model_1, vcov. = vcovHC, type="HC1") -> model_1_coeftest
+coeftest(model_2, vcov. = vcovHC, type="HC1") -> model_2_coeftest
+```
+
+[rows,columns]
+
+```{r}
+# se= 指定standard error算法
+# se=list(model_1的standard error, model_2的srtandard error)
+stargazer(model_1, model_2, 
+          se=list(model_1_coeftest[,"Std. Error"], model_2_coeftest[,2]),
+          type="text",
+          align=TRUE)
+```
+
