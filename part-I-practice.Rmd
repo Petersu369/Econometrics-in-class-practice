@@ -136,7 +136,7 @@ my_fun<-function(x) x+a
 a<-8
 ```
 
-```{r is_numeric inside select_if}
+```{r is_numeric inside select_if, eval=FALSE}
 #select_if(is_numeric(journals$title))
 is_numeric(journals$title)-> tempx
 select_if(tempx)
@@ -167,7 +167,9 @@ journals %>%
   lm(log(subs)~log(citeprice),data=.)
 #equal to
 lm(log(subs)~log(citeprice),data=journals)
+```
 
+```{r ,eval=FALSE}
 journals %>%
   lm(log(subs)~log(citeprice))
 # equal to 
